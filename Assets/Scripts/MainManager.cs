@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -11,10 +12,14 @@ public class MainManager : MonoBehaviour
     public Rigidbody Ball;
 
     public Text ScoreText;
+    public Text HighScoreText;
     public GameObject GameOverText;
     
     private bool m_Started = false;
     private int m_Points;
+    private string m_PlayerName;
+    private int m_HighestScorePoints;
+    private string m_HighestScorePlayer;
     
     private bool m_GameOver = false;
 
@@ -24,6 +29,12 @@ public class MainManager : MonoBehaviour
     {
         const float step = 0.6f;
         int perLine = Mathf.FloorToInt(4.0f / step);
+
+        LoadHighScore();
+
+        HighScoreText.text = $"Highscore - {m_HighestScorePlayer} Score : {m_HighestScorePoints}";
+
+        m_PlayerName = PlayerNameManager.Instance.playerName;
         
         int[] pointCountArray = new [] {1,1,2,2,5,5};
         for (int i = 0; i < LineCount; ++i)
@@ -65,12 +76,42 @@ public class MainManager : MonoBehaviour
     void AddPoint(int point)
     {
         m_Points += point;
-        ScoreText.text = $"Score : {m_Points}";
+        ScoreText.text = $"{m_PlayerName} Score : {m_Points}";
     }
 
     public void GameOver()
     {
         m_GameOver = true;
+
+        if (m_Points > m_HighestScorePoints)
+        {
+            SaveHighScore();
+        }
+
         GameOverText.SetActive(true);
+    }
+
+    public void SaveHighScore()
+    {
+        Highscore data = new Highscore();
+        data.highestScore = m_Points;
+        data.highestScoreName = m_PlayerName;
+
+        string json = JsonUtility.ToJson(data);
+
+        File.WriteAllText(Application.persistentDataPath + "/savefile.json", json);
+    }
+
+    public void LoadHighScore()
+    {
+        string path = Application.persistentDataPath + "/savefile.json";
+        if (File.Exists(path))
+        {
+            string json = File.ReadAllText(path);
+            Highscore data = JsonUtility.FromJson<Highscore>(json);
+
+            m_HighestScorePlayer = data.highestScoreName;
+            m_HighestScorePoints = data.highestScore;
+        }
     }
 }
